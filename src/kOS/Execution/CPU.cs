@@ -923,6 +923,10 @@ namespace kOS.Execution
             {
                 updateWatch.Stop();
                 totalUpdateTime += updateWatch.ElapsedMilliseconds;
+                totalCompileTime += shared.ConcurrencyManager.ParallelStopwatch.ElapsedMilliseconds;
+                totalExecutionTime -= shared.ConcurrencyManager.ParallelStopwatch.ElapsedMilliseconds;
+                totalUpdateTime -= shared.ConcurrencyManager.ParallelStopwatch.ElapsedMilliseconds;
+                shared.ConcurrencyManager.ParallelStopwatch.Reset();
                 if (maxTriggerInstructionsSoFar < numTriggerInstructions)
                     maxTriggerInstructionsSoFar = numTriggerInstructions;
                 if (maxMainlineInstructionsSoFar < numMainlineInstructions)
@@ -1097,10 +1101,10 @@ namespace kOS.Execution
         {
             if (!Config.Instance.ShowStatistics) return;
 
-            shared.Screen.Print(string.Format("Total compile time: {0:F3}ms", totalCompileTime));
-            shared.Screen.Print(string.Format("Total update time: {0:F3}ms", totalUpdateTime));
-            shared.Screen.Print(string.Format("Total triggers time: {0:F3}ms", totalTriggersTime));
-            shared.Screen.Print(string.Format("Total execution time: {0:F3}ms", totalExecutionTime));
+            shared.Screen.Print(string.Format("Total compile time: {0}ms", totalCompileTime));
+            shared.Screen.Print(string.Format("Total update time: {0}ms", totalUpdateTime));
+            shared.Screen.Print(string.Format("Total triggers time: {0}ms", totalTriggersTime));
+            shared.Screen.Print(string.Format("Total execution time: {0}ms", totalExecutionTime));
             shared.Screen.Print(string.Format("Most Trigger instructions in one update: {0}", maxTriggerInstructionsSoFar));
             shared.Screen.Print(string.Format("Most Mainline instructions in one update: {0}", maxMainlineInstructionsSoFar));
             shared.Screen.Print(" ");

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using kOS.AddOns.RemoteTech;
@@ -19,6 +20,7 @@ using kOS.Safe.Compilation.KS;
 using kOS.Safe.Module;
 using kOS.Safe.Screen;
 using kOS.Suffixed;
+using System.Threading;
 
 using KSPAPIExtensions;
 using FileInfo = kOS.Safe.Encapsulation.FileInfo;
@@ -349,6 +351,11 @@ namespace kOS.Module
             if (p != part)
                 return;
 
+            if (shared.ConcurrencyManager != null)
+            {
+                shared.ConcurrencyManager.Stop();
+            }
+
             GetWindow().DetachAllTelnets();
             
             allMyInstances.RemoveAll(m => m==this);
@@ -426,12 +433,6 @@ namespace kOS.Module
                 
             }
             if (!IsAlive()) return;
-            if (firstUpdate)
-            {
-                SafeHouse.Logger.LogWarning("First Update()");
-                firstUpdate = false;
-                shared.Cpu.Boot();
-            }
             UpdateVessel();
             UpdateObservers();
         }
@@ -439,9 +440,78 @@ namespace kOS.Module
         public void FixedUpdate()
         {
             if (!IsAlive()) return;
+            if (FlightGlobals.ready)
+            {
+                if (shared.ConcurrencyManager == null && !part.vessel.packed)
+                {
+                    SafeHouse.Logger.LogError("ConcurencyManager is null, starting new");
+                    try
+                    {
+                        shared.ConcurrencyManager = new ConcurrencyManager(LoopThreadMethod);
+                        shared.ConcurrencyManager.Start();
+                    }
+                    catch (Exception ex)
+                    {
+                        SafeHouse.Logger.LogException(ex);
+                        if (shared.ConcurrencyManager.IsErrored) { SafeHouse.Logger.LogException(shared.ConcurrencyManager.Exception); }
+                    }
+                }
+                if (shared.ConcurrencyManager != null)
+                {
+                    if (shared.ConcurrencyManager.IsRunning)
+                    {
+                        //SafeHouse.Logger.LogWarning("Allow child");
+                        shared.ConcurrencyManager.AllowChild();
+                        if (!shared.ConcurrencyManager.WaitForChild())
+                        {
+                            SafeHouse.Logger.LogError("Timeout waiting for child thread");
+                            if (++shared.ConcurrencyManager.TimeOutCount > 30)
+                            {
+                                shared.ConcurrencyManager.Stop();
+                                SafeHouse.Logger.LogError("Timed out more than 30 times, stoping child thread");
+                            }
+                        }
+                    }
+                    if (shared.ConcurrencyManager.IsErrored)
+                    {
+                        SafeHouse.Logger.LogException(shared.ConcurrencyManager.Exception);
+                        shared.ConcurrencyManager.Stop();
+                    }
+                }
+            }
+            //UpdateFixedObservers();
+            //ProcessElectricity(part, TimeWarp.fixedDeltaTime);
+        }
 
-            UpdateFixedObservers();
-            ProcessElectricity(part, TimeWarp.fixedDeltaTime);
+        public void LoopThreadMethod()
+        {
+            ConcurrencyManager concurencyManager = shared.ConcurrencyManager;
+#if DEBUG
+            SafeHouse.Logger.LogWarning("Initialize LoopThreadMethod()");
+#endif
+            concurencyManager.AllowParent();
+            concurencyManager.WaitForParent();
+            if (IsAlive())
+            {
+#if DEBUG
+                SafeHouse.Logger.LogWarning("Start LoopThreadMethod()");
+#endif
+                shared.Cpu.Boot();
+                concurencyManager.AllowParent();
+                concurencyManager.WaitForParent();
+            }
+            while (IsAlive() && concurencyManager.IsRunning)
+            {
+//#if DEBUG
+//                SafeHouse.Logger.LogWarning("Iterate LoopThreadMethod()");
+//#endif
+
+                UpdateFixedObservers();
+                ProcessElectricity(part, TimeWarp.fixedDeltaTime);
+
+                concurencyManager.AllowParent();
+                concurencyManager.WaitForParent();
+            }
         }
 
         private void UpdateVessel()
@@ -465,7 +535,7 @@ namespace kOS.Module
         {
             if (ProcessorMode == ProcessorModes.READY)
             {
-                if (shared.UpdateHandler != null) shared.UpdateHandler.UpdateFixedObservers(Time.deltaTime);
+                if (shared.UpdateHandler != null) shared.UpdateHandler.UpdateFixedObservers(Time.fixedDeltaTime);
             }
         }
 
