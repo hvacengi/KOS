@@ -45,15 +45,10 @@ namespace kOS.Suffixed.Part
             {
                 foreach (PartModule module in part.Modules)
                 {
-                    var engineModule = module as ModuleEngines;
-                    var engineModuleFx = module as ModuleEnginesFX;
-                    if (engineModuleFx != null)
+                    var engines = module as ModuleEngines;
+                    if (engines != null)
                     {
-                        toReturn.Add(new EngineValue(part, new ModuleEngineAdapter(engineModuleFx), sharedObj));
-                    }
-                    else if (engineModule != null)
-                    {
-                        toReturn.Add(new EngineValue(part, new ModuleEngineAdapter(engineModule), sharedObj));
+                        toReturn.Add(new EngineValue(part, new ModuleEngineAdapter(engines), sharedObj));
                     }
                 }
             }

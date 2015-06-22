@@ -1,28 +1,37 @@
+<<<<<<< HEAD
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+=======
+>>>>>>> dceebb2155f6350739c83cde8afe0e9065c820e8
 using kOS.AddOns.RemoteTech;
+using kOS.Binding;
 using kOS.Execution;
 using kOS.Factories;
 using kOS.Function;
-using kOS.Safe.Persistence;
-using kOS.Safe.Utilities;
-using kOS.Utilities;
-using UnityEngine;
-using KSP.IO;
 using kOS.InterProcessor;
-using kOS.Binding;
 using kOS.Persistence;
 using kOS.Safe;
 using kOS.Safe.Compilation;
 using kOS.Safe.Compilation.KS;
 using kOS.Safe.Module;
+using kOS.Safe.Persistence;
 using kOS.Safe.Screen;
+using kOS.Safe.Utilities;
 using kOS.Suffixed;
+<<<<<<< HEAD
 using System.Threading;
 
+=======
+using kOS.Utilities;
+using KSP.IO;
+>>>>>>> dceebb2155f6350739c83cde8afe0e9065c820e8
 using KSPAPIExtensions;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 using FileInfo = kOS.Safe.Encapsulation.FileInfo;
 
 namespace kOS.Module
@@ -32,6 +41,7 @@ namespace kOS.Module
         public ProcessorModes ProcessorMode = ProcessorModes.READY;
 
         public Harddisk HardDisk { get; private set; }
+
         private int vesselPartCount;
         private SharedObjects shared;
         private static readonly List<kOSProcessor> allMyInstances = new List<kOSProcessor>();
@@ -40,9 +50,9 @@ namespace kOS.Module
         //640K ought to be enough for anybody -sic
         private const int PROCESSOR_HARD_CAP = 655360;
 
-        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "Boot File"), UI_ChooseOption(scene=UI_Scene.Editor)]
+        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "Boot File"), UI_ChooseOption(scene = UI_Scene.Editor)]
         public string bootFile = "boot.ks";
-        
+
         [KSPField(isPersistant = true, guiName = "kOS Disk Space", guiActive = true)]
         public int diskSpace = 1024;
 
@@ -64,7 +74,8 @@ namespace kOS.Module
         [KSPField(isPersistant = false, guiName = "CPU/Disk Upgrade Mass", guiActive = false, guiActiveEditor = true)]
         public float additionalMass = 0F;
 
-        [KSPField(isPersistant = true, guiActive = false)] public int MaxPartId = 100;
+        [KSPField(isPersistant = true, guiActive = false)]
+        public int MaxPartId = 100;
 
         [KSPEvent(guiActive = true, guiName = "Open Terminal", category = "skip_delay;")]
         public void Activate()
@@ -73,7 +84,7 @@ namespace kOS.Module
             OpenWindow();
         }
 
-        [KSPField(isPersistant = true, guiName = "Required Power", guiActive = true)] 
+        [KSPField(isPersistant = true, guiName = "Required Power", guiActive = true)]
         public float RequiredPower;
 
         [KSPEvent(guiActive = true, guiName = "Toggle Power")]
@@ -83,7 +94,7 @@ namespace kOS.Module
             ProcessorModes newProcessorMode = (ProcessorMode != ProcessorModes.OFF) ? ProcessorModes.OFF : ProcessorModes.STARVED;
             SetMode(newProcessorMode);
         }
-        
+
         [KSPAction("Open Terminal", actionGroup = KSPActionGroup.None)]
         public void Activate(KSPActionParam param)
         {
@@ -111,7 +122,7 @@ namespace kOS.Module
             SafeHouse.Logger.Log("Toggle Power from ActionGroup");
             TogglePower();
         }
-        
+
         public void OpenWindow()
         {
             shared.Window.Open();
@@ -126,12 +137,12 @@ namespace kOS.Module
         {
             shared.Window.Toggle();
         }
-        
+
         public bool WindowIsOpen()
         {
             return shared.Window.IsOpen;
         }
-        
+
         public bool TelnetIsAttached()
         {
             return shared.Window.NumTelnets() > 0;
@@ -141,7 +152,7 @@ namespace kOS.Module
         {
             return shared.Screen;
         }
-        
+
         // TODO - later refactor making this kOS.Safer so it can work on ITermWindow, which also means moving all of UserIO's classes too.
         public Screen.TermWindow GetWindow()
         {
@@ -160,7 +171,7 @@ namespace kOS.Module
 
             if (additionalCost > 0)
             {
-                moduleInfo += "\nCost of probe CPU upgrade: " + System.Math.Round(additionalCost,0);
+                moduleInfo += "\nCost of probe CPU upgrade: " + System.Math.Round(additionalCost, 0);
             }
 
             return moduleInfo;
@@ -177,7 +188,7 @@ namespace kOS.Module
             const float DISK_SPACE_MASS_MULTIPLIER = 0.0000048829F; //implies approx 20kg for 4096bytes of diskSpace
             const float DISK_SPACE_COST_MULTIPLIER = 0.0244140625F; //implies approx 100funds for 4096bytes of diskSpace
 
-            additionalCost = baseModuleCost + (float)System.Math.Round((diskSpace - baseDiskSpace) * DISK_SPACE_COST_MULTIPLIER,0);
+            additionalCost = baseModuleCost + (float)System.Math.Round((diskSpace - baseDiskSpace) * DISK_SPACE_COST_MULTIPLIER, 0);
             additionalMass = (diskSpace - baseDiskSpace) * DISK_SPACE_MASS_MULTIPLIER;
 
             part.mass = basePartMass + additionalMass;
@@ -195,15 +206,15 @@ namespace kOS.Module
             //if in Editor, populate boot script selector, diskSpace selector and etc.
             if (state == StartState.Editor)
             {
-                if (baseDiskSpace == 0) 
+                if (baseDiskSpace == 0)
                     baseDiskSpace = diskSpace;
 
-                if (System.Math.Abs (baseModuleCost) < 0.000001F)
+                if (System.Math.Abs(baseModuleCost) < 0.000001F)
                     baseModuleCost = additionalCost;  //remember module cost before tweaks
                 else
                     additionalCost = baseModuleCost; //reset module cost and update later in UpdateCostAndMass()
 
-                if (System.Math.Abs (basePartMass) < 0.000001F)
+                if (System.Math.Abs(basePartMass) < 0.000001F)
                     basePartMass = part.mass;  //remember part mass before tweaks
                 else
                     part.mass = basePartMass; //reset part mass to original value and update later in UpdateCostAndMass()
@@ -211,7 +222,7 @@ namespace kOS.Module
                 InitUI();
             }
 
-            UpdateCostAndMass(); 
+            UpdateCostAndMass();
 
             //Do not start from editor and at KSP first loading
             if (state == StartState.Editor || state == StartState.None)
@@ -222,6 +233,7 @@ namespace kOS.Module
             SafeHouse.Logger.Log(string.Format("OnStart: {0} {1}", state, ProcessorMode));
             InitObjects();
         }
+
         private void InitUI()
         {
             //Populate selector for boot scripts
@@ -251,10 +263,9 @@ namespace kOS.Module
             options = (UI_ChooseOption)field.uiControlEditor;
             var sizeOptions = new string[3];
             sizeOptions[0] = baseDiskSpace.ToString();
-            sizeOptions[1] = (baseDiskSpace*2).ToString();
-            sizeOptions[2] = (baseDiskSpace*4).ToString();
+            sizeOptions[1] = (baseDiskSpace * 2).ToString();
+            sizeOptions[2] = (baseDiskSpace * 4).ToString();
             options.options = sizeOptions;
-        
         }
 
         public void InitObjects()
@@ -263,7 +274,7 @@ namespace kOS.Module
 
             shared = new SharedObjects();
             CreateFactory();
-                    
+
             shared.Vessel = vessel;
             shared.Processor = this;
             shared.KSPPart = part;
@@ -295,13 +306,13 @@ namespace kOS.Module
             {
                 HardDisk = new Harddisk(Mathf.Min(diskSpace, PROCESSOR_HARD_CAP));
                 // populate it with the boot file, but only if using a new disk and in PRELAUNCH situation:
-                if (vessel.situation == Vessel.Situations.PRELAUNCH && bootFile != "None")
+                if (vessel.situation == Vessel.Situations.PRELAUNCH && bootFile != "None" && !Config.Instance.StartOnArchive)
                 {
                     var bootProgramFile = archive.GetByName(bootFile);
                     if (bootProgramFile != null)
                     {
                         // Copy to HardDisk as "boot".
-                        var boot = new ProgramFile(bootProgramFile) { Filename = "boot.ks" };
+                        var boot = new ProgramFile(bootProgramFile) { Filename = bootFile };
                         HardDisk.Add(boot);
                     }
                 }
@@ -313,17 +324,14 @@ namespace kOS.Module
             {
                 shared.VolumeMgr.SwitchTo(HardDisk);
             }
-            
-            InitProcessorTracking();
 
-            // move Cpu.Boot() to within the first Update() to prevent boot script errors from killing OnStart
-            // shared.Cpu.Boot();
+            InitProcessorTracking();
         }
 
         private void InitProcessorTracking()
         {
             // Track a list of all instances of me that exist:
-            if (! allMyInstances.Contains(this))
+            if (!allMyInstances.Contains(this))
             {
                 allMyInstances.Add(this);
                 allMyInstances.Sort(delegate(kOSProcessor a, kOSProcessor b)
@@ -354,11 +362,10 @@ namespace kOS.Module
             if (shared.Cpu != null) { shared.Cpu.Dispose(); }
 
             GetWindow().DetachAllTelnets();
-            
-            allMyInstances.RemoveAll(m => m==this);
+
+            allMyInstances.RemoveAll(m => m == this);
         }
-        
-        
+
         /// <summary>
         /// Return a list of all existing runtime instances of this PartModule.
         /// The list is guaranteed to be ordered by the Vessel that it's on.
@@ -405,7 +412,7 @@ namespace kOS.Module
             //SafeHouse.Logger.Log("*** External Function Registration Succeeded");
             //cpu.RegisterkOSExternalFunction(parameters);
         }
-        
+
         public static int AssignNewId()
         {
             var config = PluginConfiguration.CreateForType<kOSProcessor>();
@@ -416,7 +423,7 @@ namespace kOS.Module
 
             return id;
         }
-        
+
         public void Update()
         {
             if (HighLogic.LoadedScene == GameScenes.EDITOR)
@@ -427,7 +434,6 @@ namespace kOS.Module
                     UpdateCostAndMass();
                     GameEvents.onEditorShipModified.Fire(EditorLogic.fetch.ship);
                 }
-                
             }
             if (!IsAlive()) return;
             UpdateVessel();
@@ -439,6 +445,7 @@ namespace kOS.Module
         public void FixedUpdate()
         {
             if (!IsAlive()) return;
+<<<<<<< HEAD
             if (FlightGlobals.ready)
             {
                 if (firstFixedUpdate)
@@ -449,6 +456,17 @@ namespace kOS.Module
                 UpdateFixedObservers();
                 ProcessElectricity(part, TimeWarp.fixedDeltaTime);
             }
+=======
+
+            if (firstUpdate)
+            {
+                SafeHouse.Logger.LogWarning("First Update()");
+                firstUpdate = false;
+                shared.Cpu.Boot();
+            }
+            UpdateFixedObservers();
+            ProcessElectricity(part, TimeWarp.fixedDeltaTime);
+>>>>>>> dceebb2155f6350739c83cde8afe0e9065c820e8
         }
 
         private void UpdateVessel()
@@ -598,7 +616,7 @@ namespace kOS.Module
                 SafeHouse.Logger.LogException(ex);
             }
         }
-        
+
         // This is what KSP calls during the initial loading screen (the screen
         // with the progress bar and all of the "Turning correct end toward space"
         // funny messages.)  This is where kOS *should* be putting all the
@@ -635,14 +653,9 @@ namespace kOS.Module
                 switch (newProcessorMode)
                 {
                     case ProcessorModes.READY:
-                        if (Config.Instance.StartOnArchive)
-                        {
-                            shared.VolumeMgr.SwitchTo(shared.VolumeMgr.GetVolume(0));
-                        }
-                        else
-                        {
-                            shared.VolumeMgr.SwitchTo(HardDisk);
-                        }
+                        shared.VolumeMgr.SwitchTo(Config.Instance.StartOnArchive
+                            ? shared.VolumeMgr.GetVolume(0)
+                            : HardDisk);
                         if (shared.Cpu != null) shared.Cpu.Boot();
                         if (shared.Interpreter != null) shared.Interpreter.SetInputLock(false);
                         if (shared.Window != null) shared.Window.IsPowered = true;
@@ -652,7 +665,7 @@ namespace kOS.Module
                     case ProcessorModes.STARVED:
                         if (shared.Interpreter != null) shared.Interpreter.SetInputLock(true);
                         if (shared.Window != null) shared.Window.IsPowered = false;
-                        if (shared.BindingMgr != null) shared.BindingMgr.UnBindAll(); 
+                        if (shared.BindingMgr != null) shared.BindingMgr.UnBindAll();
                         break;
                 }
 
@@ -672,6 +685,12 @@ namespace kOS.Module
         {
             RUIToggleButton[] modeButtons = FindObjectOfType<VesselAutopilotUI>().modeButtons;
             modeButtons.ElementAt(mode).SetTrue();
+        }
+
+        public string BootFilename
+        {
+            get { return bootFile; }
+            set { bootFile = value; }
         }
     }
 }
