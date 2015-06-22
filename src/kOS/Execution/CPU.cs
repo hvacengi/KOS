@@ -43,6 +43,8 @@ namespace kOS.Execution
         private int maxTriggerInstructionsSoFar;
         private readonly StringBuilder executeLog = new StringBuilder();
 
+        public bool IsConcurrent { get { return true; } }
+
         public int InstructionPointer
         {
             get { return currentContext.InstructionPointer; }
@@ -923,10 +925,10 @@ namespace kOS.Execution
             {
                 updateWatch.Stop();
                 totalUpdateTime += updateWatch.ElapsedMilliseconds;
-                totalCompileTime += shared.ConcurrencyManager.ParallelStopwatch.ElapsedMilliseconds;
-                totalExecutionTime -= shared.ConcurrencyManager.ParallelStopwatch.ElapsedMilliseconds;
-                totalUpdateTime -= shared.ConcurrencyManager.ParallelStopwatch.ElapsedMilliseconds;
-                shared.ConcurrencyManager.ParallelStopwatch.Reset();
+                totalCompileTime += shared.UpdateHandler.concurrencyManager.ParallelStopwatch.ElapsedMilliseconds;
+                totalExecutionTime -= shared.UpdateHandler.concurrencyManager.ParallelStopwatch.ElapsedMilliseconds;
+                totalUpdateTime -= shared.UpdateHandler.concurrencyManager.ParallelStopwatch.ElapsedMilliseconds;
+                shared.UpdateHandler.concurrencyManager.ParallelStopwatch.Reset();
                 if (maxTriggerInstructionsSoFar < numTriggerInstructions)
                     maxTriggerInstructionsSoFar = numTriggerInstructions;
                 if (maxMainlineInstructionsSoFar < numMainlineInstructions)

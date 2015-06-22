@@ -1,6 +1,7 @@
 ﻿using kOS.Execution;
 using kOS.Safe.Compilation;
 using kOS.Safe.Exceptions;
+using kOS.Safe.Execution;
 using kOS.Safe.Function;
 using kOS.Safe.Module;
 using kOS.Safe.Persistence;
@@ -152,6 +153,9 @@ namespace kOS.Function
             if (shared.VolumeMgr == null) return;
             if (shared.VolumeMgr.CurrentVolume == null) throw new Exception("Volume not found");
 
+            if (shared.UpdateHandler.concurrencyManager == null) return;
+            ConcurrencyManager concurrencyManager = shared.UpdateHandler.concurrencyManager;
+
             ProgramFile file = shared.VolumeMgr.CurrentVolume.GetByName(fileName, true);
             if (file == null) throw new Exception(string.Format("File '{0}' not found", fileName));
             if (shared.ScriptHandler == null) return;
@@ -165,12 +169,12 @@ namespace kOS.Function
                     {
                         string filePath = string.Format("{0}/{1}", shared.VolumeMgr.GetVolumeRawIdentifier(targetVolume), fileName);
                         var options = new CompilerOptions { LoadProgramsInSameAddressSpace = true, FuncManager = shared.FunctionManager };
-                        shared.ConcurrencyManager.AllowParentParallel();
+                        concurrencyManager.AllowParentParallel();
                         List<CodePart> parts = shared.ScriptHandler.Compile(filePath, 1, file.StringContent, "program", options);
                         var builder = new ProgramBuilder();
                         builder.AddRange(parts);
                         List<Opcode> program = builder.BuildProgram();
-                        shared.ConcurrencyManager.WaitForParent();
+                        concurrencyManager.WaitForParent();
                         shared.ProcessorMgr.RunProgramOn(program, targetVolume);
                     }
                 }
@@ -188,7 +192,7 @@ namespace kOS.Function
                 var programContext = ((CPU)shared.Cpu).SwitchToProgramContext();
 
                 List<CodePart> codeParts;
-                shared.ConcurrencyManager.AllowParentParallel();
+                concurrencyManager.AllowParentParallel();
                 if (file.Category == FileCategory.KSM)
                 {
                     string prefix = programContext.Program.Count.ToString();
@@ -210,7 +214,7 @@ namespace kOS.Function
                         throw;
                     }
                 }
-                shared.ConcurrencyManager.WaitForParent();
+                concurrencyManager.WaitForParent();
                 programContext.AddParts(codeParts);
             }
 
@@ -256,6 +260,9 @@ namespace kOS.Function
             if (fileName == null)
                 throw new KOSFileException("No filename to load was given.");
 
+            if (shared.UpdateHandler.concurrencyManager == null) return;
+            ConcurrencyManager concurrencyManager = shared.UpdateHandler.concurrencyManager;
+
             ProgramFile file = shared.VolumeMgr.CurrentVolume.GetByName(fileName, (!justCompiling)); // if running, look for KSM first.  If compiling look for KS first.
             if (file == null) throw new KOSFileException(string.Format("Can't find file '{0}'.", fileName));
             fileName = file.Filename; // just in case GetByName picked an extension that changed it.
@@ -278,9 +285,9 @@ namespace kOS.Function
                 // or to a file to save:
                 if (justCompiling)
                 {
-                    shared.ConcurrencyManager.AllowParentParallel();
+                    concurrencyManager.AllowParentParallel();
                     List<CodePart> compileParts = shared.ScriptHandler.Compile(filePath, 1, file.StringContent, String.Empty, options);
-                    shared.ConcurrencyManager.WaitForParent();
+                    concurrencyManager.WaitForParent();
                     bool success = shared.VolumeMgr.CurrentVolume.SaveObjectFile(fileNameOut, compileParts);
                     if (!success)
                     {
@@ -291,7 +298,7 @@ namespace kOS.Function
                 {
                     var programContext = ((CPU)shared.Cpu).SwitchToProgramContext();
                     List<CodePart> parts;
-                    shared.ConcurrencyManager.AllowParentParallel();
+                    concurrencyManager.AllowParentParallel();
                     if (file.Category == FileCategory.KSM)
                     {
                         string prefix = programContext.Program.Count.ToString();
@@ -301,7 +308,7 @@ namespace kOS.Function
                     {
                         parts = shared.ScriptHandler.Compile(filePath, 1, file.StringContent, "program", options);
                     }
-                    shared.ConcurrencyManager.WaitForParent();
+                    concurrencyManager.WaitForParent();
                     int programAddress = programContext.AddObjectParts(parts);
                     // push the entry point address of the new program onto the stack
                     shared.Cpu.PushStack(programAddress);

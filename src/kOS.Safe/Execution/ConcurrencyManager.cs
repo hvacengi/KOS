@@ -1,26 +1,34 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 
-namespace kOS.Execution
+namespace kOS.Safe.Execution
 {
     public class ConcurrencyManager
     {
         public delegate void ChildThreadMethod();
+
         public ManualResetEvent ChildThreadReset { get; private set; }
+
         public ManualResetEvent ParentThreadReset { get; private set; }
-        public ChildThreadMethod ChildInitMethod { get; private set; }
+
         public ChildThreadMethod ChildMethod { get; private set; }
+
         public Thread ChildThread { get; private set; }
+
         public Exception Exception { get; private set; }
+
         public bool IsRunning { get; private set; }
+
         public bool IsParallel { get; private set; }
+
         public bool IsErrored { get; private set; }
+
         public int TimeOutCount { get; set; }
+
         public System.Diagnostics.Stopwatch ChildStopwatch { get; set; }
+
         public System.Diagnostics.Stopwatch ParallelStopwatch { get; set; }
+
         public System.Diagnostics.Stopwatch ParentStopwatch { get; set; }
 
         public ConcurrencyManager()
@@ -50,21 +58,6 @@ namespace kOS.Execution
             ParentStopwatch = new System.Diagnostics.Stopwatch();
         }
 
-        public ConcurrencyManager(ChildThreadMethod childMethod, ChildThreadMethod childInitMethod)
-        {
-            ChildThreadReset = new ManualResetEvent(false);
-            ParentThreadReset = new ManualResetEvent(true);
-            ChildMethod = childMethod;
-            ChildMethod = childInitMethod;
-            IsRunning = false;
-            IsParallel = false;
-            IsErrored = false;
-            TimeOutCount = 0;
-            ChildStopwatch = new System.Diagnostics.Stopwatch();
-            ParallelStopwatch = new System.Diagnostics.Stopwatch();
-            ParentStopwatch = new System.Diagnostics.Stopwatch();
-        }
-
         public void Start()
         {
             if (ChildThread != null)
@@ -74,24 +67,16 @@ namespace kOS.Execution
             IsRunning = true;
             ChildThread = new Thread(() =>
             {
-                if (ChildInitMethod != null)
-                {
-                    try
-                    {
-                        ChildInitMethod();
-                    }
-                    catch (Exception ex)
-                    {
-                        IsErrored = true;
-                        this.Exception = ex;
-                        this.IsRunning = false;
-                    }
-                }
                 while (IsRunning)
                 {
                     try
                     {
-                        ChildMethod();
+                        while (IsRunning)
+                        {
+                            ChildMethod();
+                            AllowParent();
+                            WaitForParent();
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -110,6 +95,7 @@ namespace kOS.Execution
                 throw new kOS.Safe.Exceptions.KOSException("Child thread is not alive.");
             }
         }
+
         public void Stop()
         {
             if (IsRunning)
@@ -123,10 +109,12 @@ namespace kOS.Execution
                 ChildThread = null;
             }
         }
+
         public void BlockParent()
         {
             ParentThreadReset.Reset();
         }
+
         public void AllowParent()
         {
             ChildThreadReset.Reset();
@@ -134,6 +122,7 @@ namespace kOS.Execution
             ChildStopwatch.Stop();
             Thread.Sleep(0);
         }
+
         public void AllowParentParallel()
         {
             IsParallel = true;
@@ -143,6 +132,7 @@ namespace kOS.Execution
             ParallelStopwatch.Start();
             ParentThreadReset.Set();
         }
+
         public bool WaitForChild()
         {
             if (IsRunning)
@@ -159,10 +149,12 @@ namespace kOS.Execution
             }
             else return true;
         }
+
         public void BlockChild()
         {
             ChildThreadReset.Reset();
         }
+
         public void AllowChild()
         {
             ParentThreadReset.Reset();
@@ -170,6 +162,7 @@ namespace kOS.Execution
             ParentStopwatch.Stop();
             Thread.Sleep(0);
         }
+
         public void WaitForParent()
         {
             bool resetChild = true;

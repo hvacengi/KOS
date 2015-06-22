@@ -10,5 +10,6 @@ namespace kOS.Safe
     public interface IFixedUpdateObserver : IDisposable
     {
         void KOSFixedUpdate(double deltaTime);
+        bool IsConcurrent { get; }
     }
 }

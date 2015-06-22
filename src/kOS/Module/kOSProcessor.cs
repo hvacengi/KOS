@@ -351,10 +351,7 @@ namespace kOS.Module
             if (p != part)
                 return;
 
-            if (shared.ConcurrencyManager != null)
-            {
-                shared.ConcurrencyManager.Stop();
-            }
+            if (shared.Cpu != null) { shared.Cpu.Dispose(); }
 
             GetWindow().DetachAllTelnets();
             
@@ -437,80 +434,20 @@ namespace kOS.Module
             UpdateObservers();
         }
 
+        bool firstFixedUpdate = true;
+
         public void FixedUpdate()
         {
             if (!IsAlive()) return;
             if (FlightGlobals.ready)
             {
-                if (shared.ConcurrencyManager == null && !part.vessel.packed)
+                if (firstFixedUpdate)
                 {
-                    SafeHouse.Logger.LogError("ConcurencyManager is null, starting new");
-                    try
-                    {
-                        shared.ConcurrencyManager = new ConcurrencyManager(LoopThreadMethod);
-                        shared.ConcurrencyManager.Start();
-                    }
-                    catch (Exception ex)
-                    {
-                        SafeHouse.Logger.LogException(ex);
-                        if (shared.ConcurrencyManager.IsErrored) { SafeHouse.Logger.LogException(shared.ConcurrencyManager.Exception); }
-                    }
+                    shared.Cpu.Boot();
+                    firstFixedUpdate = false;
                 }
-                if (shared.ConcurrencyManager != null)
-                {
-                    if (shared.ConcurrencyManager.IsRunning)
-                    {
-                        //SafeHouse.Logger.LogWarning("Allow child");
-                        shared.ConcurrencyManager.AllowChild();
-                        if (!shared.ConcurrencyManager.WaitForChild())
-                        {
-                            SafeHouse.Logger.LogError("Timeout waiting for child thread");
-                            if (++shared.ConcurrencyManager.TimeOutCount > 30)
-                            {
-                                shared.ConcurrencyManager.Stop();
-                                SafeHouse.Logger.LogError("Timed out more than 30 times, stoping child thread");
-                            }
-                        }
-                    }
-                    if (shared.ConcurrencyManager.IsErrored)
-                    {
-                        SafeHouse.Logger.LogException(shared.ConcurrencyManager.Exception);
-                        shared.ConcurrencyManager.Stop();
-                    }
-                }
-            }
-            //UpdateFixedObservers();
-            //ProcessElectricity(part, TimeWarp.fixedDeltaTime);
-        }
-
-        public void LoopThreadMethod()
-        {
-            ConcurrencyManager concurencyManager = shared.ConcurrencyManager;
-#if DEBUG
-            SafeHouse.Logger.LogWarning("Initialize LoopThreadMethod()");
-#endif
-            concurencyManager.AllowParent();
-            concurencyManager.WaitForParent();
-            if (IsAlive())
-            {
-#if DEBUG
-                SafeHouse.Logger.LogWarning("Start LoopThreadMethod()");
-#endif
-                shared.Cpu.Boot();
-                concurencyManager.AllowParent();
-                concurencyManager.WaitForParent();
-            }
-            while (IsAlive() && concurencyManager.IsRunning)
-            {
-//#if DEBUG
-//                SafeHouse.Logger.LogWarning("Iterate LoopThreadMethod()");
-//#endif
-
                 UpdateFixedObservers();
                 ProcessElectricity(part, TimeWarp.fixedDeltaTime);
-
-                concurencyManager.AllowParent();
-                concurencyManager.WaitForParent();
             }
         }
 

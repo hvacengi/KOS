@@ -15,7 +15,6 @@ namespace kOS
         public Part KSPPart { get; set; }
         public TermWindow Window { get; set; }
         public TransferManager TransferManager { get; set; }
-        public ConcurrencyManager ConcurrencyManager { get; set; }
 
         public SharedObjects()
         {

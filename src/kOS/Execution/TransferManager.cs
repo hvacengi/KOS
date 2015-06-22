@@ -19,6 +19,8 @@ namespace kOS.Execution
         private readonly SharedObjects shared;
         private readonly HashSet<ResourceTransferValue> transfers;
 
+        public bool IsConcurrent { get { return false; } }
+
         public TransferManager(SharedObjects shared)
         {
             this.shared = shared;

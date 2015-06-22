@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using kOS.Safe.Execution;
+using kOS.Safe.Utilities;
 
 namespace kOS.Safe
 {
@@ -12,12 +14,15 @@ namespace kOS.Safe
         // The value of the KeyValuePair, the int, is unused.
         private readonly HashSet<IUpdateObserver> observers = new HashSet<IUpdateObserver>();
         private readonly HashSet<IFixedUpdateObserver> fixedObservers = new HashSet<IFixedUpdateObserver>();
+        private readonly HashSet<IFixedUpdateObserver> concurrentFixedObservers = new HashSet<IFixedUpdateObserver>();
+
+        public ConcurrencyManager concurrencyManager;
 
         public double CurrentFixedTime { get; private set; }
         public double LastDeltaFixedTime { get; private set; }
         public double CurrentTime { get; private set; }
         public double LastDeltaTime { get; private set; }
-
+        
         public void AddObserver(IUpdateObserver observer)
         {
             observers.Add(observer);
@@ -25,7 +30,19 @@ namespace kOS.Safe
 
         public void AddFixedObserver(IFixedUpdateObserver observer)
         {
-            fixedObservers.Add(observer);
+            if (observer.IsConcurrent)
+            {
+                if (concurrencyManager == null)
+                {
+                    SafeHouse.Logger.LogError("concurencyManager is null, intatiating new (AddFixedObserver)");
+                    concurrencyManager = new ConcurrencyManager(UpdateConcurrentFixedObservers);
+                }
+                concurrentFixedObservers.Add(observer);
+            }
+            else
+            {
+                fixedObservers.Add(observer);
+            }
         }
 
         public void RemoveObserver(IUpdateObserver observer)
@@ -35,7 +52,20 @@ namespace kOS.Safe
 
         public void RemoveFixedObserver(IFixedUpdateObserver observer)
         {
-            fixedObservers.Remove(observer);
+            if (observer.IsConcurrent)
+            {
+                concurrentFixedObservers.Remove(observer);
+                if (concurrentFixedObservers.Count == 0)
+                {
+                    SafeHouse.Logger.LogError("concurentFixedObservers is empty, stopping concurrencyManager (RemoveFixedObserver)");
+                    concurrencyManager.Stop();
+                    concurrencyManager = null;
+                }
+            }
+            else
+            {
+                fixedObservers.Remove(observer);
+            }
         }
 
         public void UpdateObservers(double deltaTime)
@@ -50,6 +80,7 @@ namespace kOS.Safe
             }
         }
 
+        int timeouts = 0;
         public void UpdateFixedObservers(double deltaTime)
         {
             LastDeltaFixedTime = deltaTime;
@@ -59,6 +90,52 @@ namespace kOS.Safe
             foreach (var observer in snapshot)
             {
                 observer.KOSFixedUpdate(deltaTime);
+            }
+            if (concurrencyManager != null)
+            {
+                if (concurrencyManager.IsRunning)
+                {
+                    concurrencyManager.AllowChild();
+                    bool timedOut = !concurrencyManager.WaitForChild();
+                    if (timedOut)
+                    {
+                        SafeHouse.Logger.LogError("Timeout waiting for concurencyManager child (UpdateFixedObservers)");
+                        SafeHouse.Logger.LogError(string.Format("ChildThread.ThreadState = {0} (UpdateFixedObservers)", concurrencyManager.ChildThread.ThreadState));
+                        if (++timeouts > 30)
+                        {
+                            concurrencyManager.Stop();
+                        }
+                    }
+                }
+                else if (concurrencyManager.IsErrored)
+                {
+                    SafeHouse.Logger.LogError("concurencyManager is errored (UpdateFixedObservers)");
+                    SafeHouse.Logger.LogException(concurrencyManager.Exception);
+                    concurrencyManager.Stop();
+                    //concurrencyManager = null;
+                }
+                else
+                {
+                    SafeHouse.Logger.LogError("concurencyManager is not running, starting now (UpdateFixedObservers)");
+                    concurrencyManager.Start();
+                }
+            }
+            else
+            {
+                if (concurrentFixedObservers.Count > 0)
+                {
+                    SafeHouse.Logger.LogError("concurencyManager is null, intatiating new (UpdateFixedObservers)");
+                    concurrencyManager = new ConcurrencyManager(UpdateConcurrentFixedObservers);
+                }
+            }
+        }
+
+        public void UpdateConcurrentFixedObservers()
+        {
+            var snapshot = new HashSet<IFixedUpdateObserver>(concurrentFixedObservers);
+            foreach (var observer in snapshot)
+            {
+                observer.KOSFixedUpdate(LastDeltaFixedTime);
             }
         }
         
