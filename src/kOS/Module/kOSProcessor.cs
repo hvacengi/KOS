@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-=======
->>>>>>> dceebb2155f6350739c83cde8afe0e9065c820e8
 using kOS.AddOns.RemoteTech;
 using kOS.Binding;
 using kOS.Execution;
@@ -20,13 +13,8 @@ using kOS.Safe.Persistence;
 using kOS.Safe.Screen;
 using kOS.Safe.Utilities;
 using kOS.Suffixed;
-<<<<<<< HEAD
-using System.Threading;
-
-=======
 using kOS.Utilities;
 using KSP.IO;
->>>>>>> dceebb2155f6350739c83cde8afe0e9065c820e8
 using KSPAPIExtensions;
 using System;
 using System.Collections.Generic;
@@ -440,12 +428,11 @@ namespace kOS.Module
             UpdateObservers();
         }
 
-        bool firstFixedUpdate = true;
+        private bool firstFixedUpdate = true;
 
         public void FixedUpdate()
         {
             if (!IsAlive()) return;
-<<<<<<< HEAD
             if (FlightGlobals.ready)
             {
                 if (firstFixedUpdate)
@@ -456,17 +443,6 @@ namespace kOS.Module
                 UpdateFixedObservers();
                 ProcessElectricity(part, TimeWarp.fixedDeltaTime);
             }
-=======
-
-            if (firstUpdate)
-            {
-                SafeHouse.Logger.LogWarning("First Update()");
-                firstUpdate = false;
-                shared.Cpu.Boot();
-            }
-            UpdateFixedObservers();
-            ProcessElectricity(part, TimeWarp.fixedDeltaTime);
->>>>>>> dceebb2155f6350739c83cde8afe0e9065c820e8
         }
 
         private void UpdateVessel()

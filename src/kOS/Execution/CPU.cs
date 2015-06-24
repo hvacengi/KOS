@@ -1130,20 +1130,13 @@ namespace kOS.Execution
         {
             if (!Config.Instance.ShowStatistics) return;
 
-<<<<<<< HEAD
             shared.Screen.Print(string.Format("Total compile time: {0}ms", totalCompileTime));
             shared.Screen.Print(string.Format("Total update time: {0}ms", totalUpdateTime));
             shared.Screen.Print(string.Format("Total triggers time: {0}ms", totalTriggersTime));
             shared.Screen.Print(string.Format("Total execution time: {0}ms", totalExecutionTime));
-=======
-            shared.Screen.Print(string.Format("Total compile time: {0:F3}ms", totalCompileTime));
-            shared.Screen.Print(string.Format("Total update time: {0:F3}ms", totalUpdateTime));
-            shared.Screen.Print(string.Format("Total triggers time: {0:F3}ms", totalTriggersTime));
-            shared.Screen.Print(string.Format("Total execution time: {0:F3}ms", totalExecutionTime));
-            shared.Screen.Print(string.Format("Maximum update time: {0:F3}ms", maxUpdateTime));
-            shared.Screen.Print(string.Format("Maximum triggers time: {0:F3}ms", maxTriggersTime));
-            shared.Screen.Print(string.Format("Maximum execution time: {0:F3}ms", maxExecutionTime));
->>>>>>> dceebb2155f6350739c83cde8afe0e9065c820e8
+            shared.Screen.Print(string.Format("Maximum update time: {0}ms", maxUpdateTime));
+            shared.Screen.Print(string.Format("Maximum triggers time: {0}ms", maxTriggersTime));
+            shared.Screen.Print(string.Format("Maximum execution time: {0}ms", maxExecutionTime));
             shared.Screen.Print(string.Format("Most Trigger instructions in one update: {0}", maxTriggerInstructionsSoFar));
             shared.Screen.Print(string.Format("Most Mainline instructions in one update: {0}", maxMainlineInstructionsSoFar));
             shared.Screen.Print(" ");
