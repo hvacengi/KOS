@@ -8,15 +8,14 @@ namespace kOS.Safe
 {
     public class UpdateHandler
     {
-        // Using a Dictionary instead of List to prevent duplications.  If an object tries to
+        // Using a HashSet instead of List to prevent duplications.  If an object tries to
         // insert itself more than once into the observer list, it still only gets in the list
         // once and therefore only gets its Update() called once per update.
-        // The value of the KeyValuePair, the int, is unused.
         private readonly HashSet<IUpdateObserver> observers = new HashSet<IUpdateObserver>();
         private readonly HashSet<IFixedUpdateObserver> fixedObservers = new HashSet<IFixedUpdateObserver>();
         private readonly HashSet<IFixedUpdateObserver> concurrentFixedObservers = new HashSet<IFixedUpdateObserver>();
 
-        public ConcurrencyManager concurrencyManager;
+        public ConcurrencyManager ConcurrencyManager { get; private set; }
 
         public double CurrentFixedTime { get; private set; }
         public double LastDeltaFixedTime { get; private set; }
@@ -32,10 +31,10 @@ namespace kOS.Safe
         {
             if (observer.IsConcurrent)
             {
-                if (concurrencyManager == null)
+                if (ConcurrencyManager == null)
                 {
                     SafeHouse.Logger.LogError("concurencyManager is null, intatiating new (AddFixedObserver)");
-                    concurrencyManager = new ConcurrencyManager(UpdateConcurrentFixedObservers);
+                    ConcurrencyManager = new ConcurrencyManager(UpdateConcurrentFixedObservers);
                 }
                 concurrentFixedObservers.Add(observer);
             }
@@ -58,8 +57,8 @@ namespace kOS.Safe
                 if (concurrentFixedObservers.Count == 0)
                 {
                     SafeHouse.Logger.LogError("concurentFixedObservers is empty, stopping concurrencyManager (RemoveFixedObserver)");
-                    concurrencyManager.Stop();
-                    concurrencyManager = null;
+                    ConcurrencyManager.Stop();
+                    ConcurrencyManager = null;
                 }
             }
             else
@@ -91,33 +90,55 @@ namespace kOS.Safe
             {
                 observer.KOSFixedUpdate(deltaTime);
             }
-            if (concurrencyManager != null)
+            AllowConcurrentThreadsToUpdate();
+        }
+
+        /// <summary>
+        /// Signals the concurrencyManager to allow its child thread
+        /// (if it was blocking until its parent (me) said it was okay to continue)
+        /// to have an update happen (i.e. allow one pass through the
+        /// ConcurrencyManager.ChildMethod()).
+        /// Will block until the concurrencyManager says the child thread method
+        /// has had one pass, or has told the parent (me) that it thinks it has entered
+        /// a section where it's safe to continue on in parallel with me (Unity's main thread).
+        /// </summary>
+        private void AllowConcurrentThreadsToUpdate()
+        {
+            if (ConcurrencyManager != null)
             {
-                if (concurrencyManager.IsRunning)
+                if (ConcurrencyManager.IsRunning)
                 {
-                    concurrencyManager.AllowChild();
-                    bool timedOut = !concurrencyManager.WaitForChild();
+                    // This causes the concurrencyManager to end up calling my
+                    // UpdateConcurrentFixedObservers():
+                    ConcurrencyManager.AllowChild();
+                    
+                    // This call will block until my UpdateConcurrentFixedObservers()
+                    // says it finished one full pass, or one of the methods inside it
+                    // chose to tell me it thinks it has entered a threadsafe section
+                    // where I can go on while it keeps working (i.e. compiling a program).
+                    bool timedOut = !ConcurrencyManager.WaitForChild();
+
                     if (timedOut)
                     {
                         SafeHouse.Logger.LogError("Timeout waiting for concurencyManager child (UpdateFixedObservers)");
-                        SafeHouse.Logger.LogError(string.Format("ChildThread.ThreadState = {0} (UpdateFixedObservers)", concurrencyManager.ChildThread.ThreadState));
+                        SafeHouse.Logger.LogError(string.Format("ChildThread.ThreadState = {0} (UpdateFixedObservers)", ConcurrencyManager.ChildThread.ThreadState));
                         if (++timeouts > 30)
                         {
-                            concurrencyManager.Stop();
+                            ConcurrencyManager.Stop();
                         }
                     }
                 }
-                else if (concurrencyManager.IsErrored)
+                else if (ConcurrencyManager.IsErrored)
                 {
                     SafeHouse.Logger.LogError("concurencyManager is errored (UpdateFixedObservers)");
-                    SafeHouse.Logger.LogException(concurrencyManager.Exception);
-                    concurrencyManager.Stop();
+                    SafeHouse.Logger.LogException(ConcurrencyManager.Exception);
+                    ConcurrencyManager.Stop();
                     //concurrencyManager = null;
                 }
                 else
                 {
                     SafeHouse.Logger.LogError("concurencyManager is not running, starting now (UpdateFixedObservers)");
-                    concurrencyManager.Start();
+                    ConcurrencyManager.Start();
                 }
             }
             else
@@ -125,11 +146,15 @@ namespace kOS.Safe
                 if (concurrentFixedObservers.Count > 0)
                 {
                     SafeHouse.Logger.LogError("concurencyManager is null, intatiating new (UpdateFixedObservers)");
-                    concurrencyManager = new ConcurrencyManager(UpdateConcurrentFixedObservers);
+                    ConcurrencyManager = new ConcurrencyManager(UpdateConcurrentFixedObservers);
                 }
             }
         }
 
+        /// <summary>
+        /// This is called BY the ConcurrencyManager, and is what the child thread is
+        /// doing when me, the parent thread, tells it it's allowed to have a timeslice pass.
+        /// </summary>
         public void UpdateConcurrentFixedObservers()
         {
             var snapshot = new HashSet<IFixedUpdateObserver>(concurrentFixedObservers);

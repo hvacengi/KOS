@@ -153,8 +153,8 @@ namespace kOS.Function
             if (shared.VolumeMgr == null) return;
             if (shared.VolumeMgr.CurrentVolume == null) throw new Exception("Volume not found");
 
-            if (shared.UpdateHandler.concurrencyManager == null) return;
-            ConcurrencyManager concurrencyManager = shared.UpdateHandler.concurrencyManager;
+            if (shared.UpdateHandler.ConcurrencyManager == null) return;
+            ConcurrencyManager concurrencyManager = shared.UpdateHandler.ConcurrencyManager;
 
             ProgramFile file = shared.VolumeMgr.CurrentVolume.GetByName(fileName, true);
             if (file == null) throw new Exception(string.Format("File '{0}' not found", fileName));
@@ -260,8 +260,8 @@ namespace kOS.Function
             if (fileName == null)
                 throw new KOSFileException("No filename to load was given.");
 
-            if (shared.UpdateHandler.concurrencyManager == null) return;
-            ConcurrencyManager concurrencyManager = shared.UpdateHandler.concurrencyManager;
+            if (shared.UpdateHandler.ConcurrencyManager == null) return;
+            ConcurrencyManager concurrencyManager = shared.UpdateHandler.ConcurrencyManager;
 
             ProgramFile file = shared.VolumeMgr.CurrentVolume.GetByName(fileName, (!justCompiling)); // if running, look for KSM first.  If compiling look for KS first.
             if (file == null) throw new KOSFileException(string.Format("Can't find file '{0}'.", fileName));

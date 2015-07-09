@@ -4,7 +4,34 @@ using System.Threading;
 namespace kOS.Safe.Execution
 {
     /// <summary>
-    /// ConcurrencyManager class for managing synchronization between a parent thread and a child thread.  The child 
+    /// ConcurrencyManager class for managing synchronization between a parent thread and a child thread.<br/>
+    /// <br/>
+    /// TWO MOTIVATIONS<br/>
+    /// ---------------------------<br/>
+    /// The purpose behind ConcurrencyManager, in kOS, is this:<br/>
+    /// <br/>
+    /// (1) Makes the kOS VM resumable anywhere, at any point.<br/>
+    /// The kOS Virtual Machine runs several opcodes
+    /// per Unity FixedUpdate, then it exits the FixedUpdate() and waits for the next update to pick up where
+    /// it left off.  The amount of context information to save and restore about where it was within its main
+    /// simulation loop was getting out of hand.  By moving it into a child thread, it doesn't need to have any
+    /// special variables to remember where it was.  Instead kOS just uses its FixedUpdate() hook to resume
+    /// the VM thread for a short while and then pause it before returning from FixedUpdate(). This sync system
+    /// effectively ensures the child thread only runs when Unity is paused
+    /// waiting for a Monobehaviour.FixedUpdate() to return, gets around that.<br/>
+    /// <br/>
+    /// (2) Allows for compiling in the background without freezing the game.<br/>
+    /// Once the VM is a separate thread, it's possible to identify specific sections of code within it where
+    /// we know for certain the VM isn't going to be touching anything in the Unity or KSP APIs, and unlike the
+    /// normal flow where the VM is paused until the next FixedUpdate() call, in these special cases we can allow
+    /// the VM to continue on in the background while the rest of the game keeps going.  One such
+    /// section is when parsing and compiling a kerboscript program.  The compiler is a slow operation taking 
+    /// several seconds if the script is large enough.  Before this threading system was invented, kOS used to
+    /// cause the main KSP game to freeze for several seconds whenever you issue the RUN command for a large program.<br/>
+    /// <br/>
+    /// IMPLEMENTATION<br/>
+    /// --------------------<br/>
+    /// The child
     /// method will be executed any time that the parent calls the AllowChild() method.  This child method may also 
     /// defer execution to the parent thread, either in parallel or in series.  See the AllowParent, AllowParentParallel 
     /// and AllowChild methods.  At a minimum, the parent thread needs to call AllowChild() followed by WaitForChild()

@@ -946,10 +946,10 @@ namespace kOS.Execution
                 updateWatch.Stop();
                 double updateElapsed = updateWatch.ElapsedMilliseconds;
                 totalUpdateTime += updateElapsed;
-                totalCompileTime += shared.UpdateHandler.concurrencyManager.ParallelStopwatch.ElapsedMilliseconds;
-                totalExecutionTime -= shared.UpdateHandler.concurrencyManager.ParallelStopwatch.ElapsedMilliseconds;
-                totalUpdateTime -= shared.UpdateHandler.concurrencyManager.ParallelStopwatch.ElapsedMilliseconds;
-                shared.UpdateHandler.concurrencyManager.ParallelStopwatch.Reset();
+                totalCompileTime += shared.UpdateHandler.ConcurrencyManager.ParallelStopwatch.ElapsedMilliseconds;
+                totalExecutionTime -= shared.UpdateHandler.ConcurrencyManager.ParallelStopwatch.ElapsedMilliseconds;
+                totalUpdateTime -= shared.UpdateHandler.ConcurrencyManager.ParallelStopwatch.ElapsedMilliseconds;
+                shared.UpdateHandler.ConcurrencyManager.ParallelStopwatch.Reset();
                 if (maxTriggerInstructionsSoFar < numTriggerInstructions)
                     maxTriggerInstructionsSoFar = numTriggerInstructions;
                 if (maxMainlineInstructionsSoFar < numMainlineInstructions)
