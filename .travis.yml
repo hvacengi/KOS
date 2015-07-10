@@ -17,3 +17,15 @@ after_script:
 - cd Resources
 - rm *.dll
 - cd ../
+
+before_deploy:
+- mkdir src/kOS/bin/dist 
+- tar -zcvf src/kOS/bin/dist/build_$TRAVIS_BUILD_NUMBER.tgz src/kOS/bin/Release/kOS*.dll
+
+deploy:
+  provider: s3
+  access_key_id: "AKIAINHSGTBU5O3DKV2Q"
+  secret_access_key: "$S3_DEPLOY_SECRET"
+  bucket: "kos-artifacts"
+  skip_cleanup: true
+  local_dir: "src/kOS/bin/dist/"
