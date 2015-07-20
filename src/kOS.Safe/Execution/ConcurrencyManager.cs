@@ -83,6 +83,11 @@ namespace kOS.Safe.Execution
         public bool IsErrored { get; private set; }
 
         /// <summary>
+        /// Returns true if the child method is currently executing, including parallel execution.
+        /// </summary>
+        public bool IsExecutingChild { get; private set; }
+
+        /// <summary>
         /// A count of the number of times that WaitForChild() encountered a timeout waiting for the reset event.  May
         /// be used to check the health of the child thread.
         /// </summary>
@@ -112,6 +117,7 @@ namespace kOS.Safe.Execution
             IsRunning = false;
             IsParallel = false;
             IsErrored = false;
+            IsExecutingChild = false;
             TimeOutCount = 0;
             ChildStopwatch = new System.Diagnostics.Stopwatch();
             ParallelStopwatch = new System.Diagnostics.Stopwatch();
@@ -151,6 +157,7 @@ namespace kOS.Safe.Execution
             IsRunning = true;
             ChildThread = new Thread(() =>
             {
+                WaitForParent();
                 while (IsRunning)
                 {
                     try
@@ -239,12 +246,13 @@ namespace kOS.Safe.Execution
                 bool ret = true;
                 if (!IsParallel)
                 {
-                    ret = ParentThreadReset.WaitOne(1000);
+                    ret = ParentThreadReset.WaitOne(30000);
                 }
                 if (!ret)
                 {
                     TimeOutCount++;
                 }
+                IsExecutingChild = IsParallel;
                 ChildThreadReset.Reset();
                 ParentStopwatch.Reset();
                 ParentStopwatch.Start();
@@ -266,6 +274,7 @@ namespace kOS.Safe.Execution
             ParentThreadReset.Reset();
             ChildThreadReset.Set();
             ParentStopwatch.Stop();
+            IsExecutingChild = true;
             Thread.Sleep(0);
         }
 

@@ -11,6 +11,12 @@ namespace kOS
     public class KSPLogger : Logger
     {
         public const string LOGGER_PREFIX = "kOS:";
+        public object QueueLock = new object();
+        //public Queue<object> ConcurrentLogQueue = new Queue<object>();
+        public static Queue<string> LogQueue = new Queue<string>();
+        public static Queue<string> WarnQueue = new Queue<string>();
+        public static Queue<string> ErrorQueue = new Queue<string>();
+        public static Queue<Exception> ExceptionQueue = new Queue<Exception>();
         public KSPLogger(SharedObjects shared) : base(shared)
         {
         }
@@ -20,35 +26,85 @@ namespace kOS
             
         }
 
+        public bool ShouldQueue()
+        {
+            if (Shared != null && Shared.UpdateHandler != null && Shared.UpdateHandler.ConcurrencyManager != null) return true;
+            return false;
+        }
+
         public override void Log(string text)
         {
+            //Console.WriteLine("kOS: (console) Log text");
             base.Log(text);
-            UnityEngine.Debug.Log(string.Format("{0} {1}", LOGGER_PREFIX, text));
+            if (ShouldQueue())
+            {
+                lock (QueueLock)
+                {
+                    LogQueue.Enqueue(string.Format("{0} {1}", LOGGER_PREFIX, text));
+                }
+            }
+            else
+            {
+                UnityEngine.Debug.Log(string.Format("{0} {1}", LOGGER_PREFIX, text));
+            }
         }
 
         public override void LogWarning(string s)
         {
-            UnityEngine.Debug.LogWarning(string.Format("{0} {1}", LOGGER_PREFIX, s));
+            //Console.WriteLine("kOS: (console) Log warning");
+            if (ShouldQueue())
+            {
+                lock (QueueLock)
+                {
+                    WarnQueue.Enqueue(string.Format("{0} {1}", LOGGER_PREFIX, s));
+                }
+            }
+            else
+            {
+                UnityEngine.Debug.LogWarning(string.Format("{0} {1}", LOGGER_PREFIX, s));
+            }
         }
 
         public override void LogException(Exception exception)
         {
-            UnityEngine.Debug.LogException(exception);
+            //Console.WriteLine("kOS: (console) Log exception");
+            if (ShouldQueue())
+            {
+                lock (QueueLock)
+                {
+                    ExceptionQueue.Enqueue(exception);
+                }
+            }
+            else
+            {
+                UnityEngine.Debug.LogException(exception);
+            }
         }
 
         public override void LogError(string s)
         {
-            UnityEngine.Debug.LogError(string.Format("{0} {1}", LOGGER_PREFIX, s));
+            //Console.WriteLine("kOS: (console) Log error");
+            if (ShouldQueue())
+            {
+                lock (QueueLock)
+                {
+                    ErrorQueue.Enqueue(string.Format("{0} {1}", LOGGER_PREFIX, s));
+                }
+            }
+            else
+            {
+                UnityEngine.Debug.LogError(string.Format("{0} {1}", LOGGER_PREFIX, s));
+            }
         }
 
         public override void Log(Exception e)
         {
+            //Console.WriteLine("kOS: (console) Log exception");
             base.Log(e);
 
             string traceText = TraceLog();
             LogToScreen(traceText);
             var kosText = string.Format("{0} {1}", LOGGER_PREFIX, traceText);
-            UnityEngine.Debug.Log(kosText);
             
             // -------------
             //    TODO
@@ -61,7 +117,6 @@ namespace kOS
             // their kRISC tracelogs to pore through.
 
             // print the call stack
-            UnityEngine.Debug.Log(e);
             
             // print a fragment of the code where the exception ocurred
             int logContextLines = 16;
@@ -73,7 +128,62 @@ namespace kOS
             messageBuilder.AppendLine("Code Fragment");
             foreach (string instruction in codeFragment)
                 messageBuilder.AppendLine(instruction);
-            UnityEngine.Debug.Log(messageBuilder.ToString());
+            if (ShouldQueue())
+            {
+                lock (QueueLock)
+                {
+                    ErrorQueue.Enqueue(string.Format("{0} {1}", LOGGER_PREFIX, kosText));
+                    ErrorQueue.Enqueue(string.Format("{0} {1}", LOGGER_PREFIX, e.Message));
+                    ErrorQueue.Enqueue(string.Format("{0} {1}", LOGGER_PREFIX, messageBuilder.ToString()));
+                }
+            }
+            else
+            {
+                UnityEngine.Debug.Log(kosText);
+                UnityEngine.Debug.Log(e);
+                UnityEngine.Debug.Log(messageBuilder.ToString());
+            }
+        }
+
+        public void Flush()
+        {
+            lock (QueueLock)
+            {
+                if (ExceptionQueue.Count + ErrorQueue.Count + WarnQueue.Count + LogQueue.Count > 0)
+                {
+                    UnityEngine.Debug.LogWarning("kOS: Log Flush");
+                    while (ExceptionQueue.Count > 0)
+                    {
+                        var ex = ExceptionQueue.Dequeue();
+                        UnityEngine.Debug.LogException(ex);
+                    }
+                    while (ErrorQueue.Count > 0)
+                    {
+                        string s = ErrorQueue.Dequeue();
+                        if (string.IsNullOrEmpty(s))
+                        {
+                            UnityEngine.Debug.LogError(s);
+                        }
+                    }
+                    while (WarnQueue.Count > 0)
+                    {
+                        string s = WarnQueue.Dequeue();
+                        if (string.IsNullOrEmpty(s))
+                        {
+                            UnityEngine.Debug.LogWarning(s);
+                        }
+                    }
+                    while (LogQueue.Count > 0)
+                    {
+                        string s = LogQueue.Dequeue();
+                        if (string.IsNullOrEmpty(s))
+                        {
+                            UnityEngine.Debug.Log(s);
+                        }
+                    }
+                    UnityEngine.Debug.LogWarning("kOS: Log Flush End");
+                }
+            }
         }
         
         /// <summary>

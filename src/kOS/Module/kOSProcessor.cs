@@ -443,6 +443,7 @@ namespace kOS.Module
                 UpdateFixedObservers();
                 ProcessElectricity(part, TimeWarp.fixedDeltaTime);
             }
+            ((KSPLogger)shared.Logger).Flush();
         }
 
         private void UpdateVessel()
