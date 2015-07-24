@@ -433,6 +433,7 @@ namespace kOS.Module
         public void FixedUpdate()
         {
             if (!IsAlive()) return;
+            shared.Logger.Flush();
             if (FlightGlobals.ready)
             {
                 if (firstFixedUpdate)
@@ -443,7 +444,7 @@ namespace kOS.Module
                 UpdateFixedObservers();
                 ProcessElectricity(part, TimeWarp.fixedDeltaTime);
             }
-            ((KSPLogger)shared.Logger).Flush();
+            shared.Logger.Flush();
         }
 
         private void UpdateVessel()

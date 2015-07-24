@@ -85,6 +85,8 @@ namespace kOS
                 Shared.Screen.Print(text);
             }
         }
+
+        public abstract void Flush();
         
         // TODO: Provide a user interface that will dig into the exceptionHistory and let
         // players see the exceptions with the option to get their VerboseMessages if they

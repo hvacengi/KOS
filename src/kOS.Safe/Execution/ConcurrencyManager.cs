@@ -177,6 +177,7 @@ namespace kOS.Safe.Execution
                     }
                 }
             });
+            ChildThread.IsBackground = true;
             ChildThread.Start();
             Thread.Sleep(0);
             if (!ChildThread.IsAlive)

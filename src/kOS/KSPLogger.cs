@@ -5,14 +5,14 @@ using System.Text;
 using System.Text.RegularExpressions;
 using kOS.Safe.Compilation;
 using kOS.Safe.Persistence;
+using UnityEngine;
 
 namespace kOS
 {
     public class KSPLogger : Logger
     {
         public const string LOGGER_PREFIX = "kOS:";
-        public object QueueLock = new object();
-        //public Queue<object> ConcurrentLogQueue = new Queue<object>();
+        private static object queueLock = new object();
         public static Queue<string> LogQueue = new Queue<string>();
         public static Queue<string> WarnQueue = new Queue<string>();
         public static Queue<string> ErrorQueue = new Queue<string>();
@@ -28,17 +28,26 @@ namespace kOS
 
         public bool ShouldQueue()
         {
-            if (Shared != null && Shared.UpdateHandler != null && Shared.UpdateHandler.ConcurrencyManager != null) return true;
+            if (System.Threading.Thread.CurrentThread.IsBackground)
+                return true;
             return false;
+        }
+
+        public int TotalQueueLength()
+        {
+            lock (queueLock)
+            {
+                return ExceptionQueue.Count + ErrorQueue.Count + WarnQueue.Count + LogQueue.Count;
+            }
+            
         }
 
         public override void Log(string text)
         {
-            //Console.WriteLine("kOS: (console) Log text");
             base.Log(text);
             if (ShouldQueue())
             {
-                lock (QueueLock)
+                lock (queueLock)
                 {
                     LogQueue.Enqueue(string.Format("{0} {1}", LOGGER_PREFIX, text));
                 }
@@ -51,10 +60,9 @@ namespace kOS
 
         public override void LogWarning(string s)
         {
-            //Console.WriteLine("kOS: (console) Log warning");
             if (ShouldQueue())
             {
-                lock (QueueLock)
+                lock (queueLock)
                 {
                     WarnQueue.Enqueue(string.Format("{0} {1}", LOGGER_PREFIX, s));
                 }
@@ -67,10 +75,9 @@ namespace kOS
 
         public override void LogException(Exception exception)
         {
-            //Console.WriteLine("kOS: (console) Log exception");
             if (ShouldQueue())
             {
-                lock (QueueLock)
+                lock (queueLock)
                 {
                     ExceptionQueue.Enqueue(exception);
                 }
@@ -83,10 +90,9 @@ namespace kOS
 
         public override void LogError(string s)
         {
-            //Console.WriteLine("kOS: (console) Log error");
             if (ShouldQueue())
             {
-                lock (QueueLock)
+                lock (queueLock)
                 {
                     ErrorQueue.Enqueue(string.Format("{0} {1}", LOGGER_PREFIX, s));
                 }
@@ -99,7 +105,6 @@ namespace kOS
 
         public override void Log(Exception e)
         {
-            //Console.WriteLine("kOS: (console) Log exception");
             base.Log(e);
 
             string traceText = TraceLog();
@@ -130,10 +135,10 @@ namespace kOS
                 messageBuilder.AppendLine(instruction);
             if (ShouldQueue())
             {
-                lock (QueueLock)
+                lock (queueLock)
                 {
                     ErrorQueue.Enqueue(string.Format("{0} {1}", LOGGER_PREFIX, kosText));
-                    ErrorQueue.Enqueue(string.Format("{0} {1}", LOGGER_PREFIX, e.Message));
+                    ErrorQueue.Enqueue(string.Format("{0} {1}", LOGGER_PREFIX, e.ToString()));
                     ErrorQueue.Enqueue(string.Format("{0} {1}", LOGGER_PREFIX, messageBuilder.ToString()));
                 }
             }
@@ -145,43 +150,50 @@ namespace kOS
             }
         }
 
-        public void Flush()
+        public override void Flush()
         {
-            lock (QueueLock)
+            lock (queueLock)
             {
-                if (ExceptionQueue.Count + ErrorQueue.Count + WarnQueue.Count + LogQueue.Count > 0)
+                if (TotalQueueLength() > 0)
                 {
-                    UnityEngine.Debug.LogWarning("kOS: Log Flush");
-                    while (ExceptionQueue.Count > 0)
+                    UnityEngine.Debug.Log(string.Format("kOS: Log Flushing {0} messages", TotalQueueLength()));
+                    try
                     {
-                        var ex = ExceptionQueue.Dequeue();
+                        while (ExceptionQueue.Count > 0)
+                        {
+                            Exception ex = ExceptionQueue.Dequeue();
+                            UnityEngine.Debug.LogException(ex);
+                        }
+                        while (ErrorQueue.Count > 0)
+                        {
+                            string s = ErrorQueue.Dequeue();
+                            if (!string.IsNullOrEmpty(s))
+                            {
+                                UnityEngine.Debug.LogError(s);
+                            }
+                        }
+                        while (WarnQueue.Count > 0)
+                        {
+                            string s = WarnQueue.Dequeue();
+                            if (!string.IsNullOrEmpty(s))
+                            {
+                                UnityEngine.Debug.LogWarning(s);
+                            }
+                        }
+                        while (LogQueue.Count > 0)
+                        {
+                            string s = LogQueue.Dequeue();
+                            if (!string.IsNullOrEmpty(s))
+                            {
+                                UnityEngine.Debug.Log(s);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
                         UnityEngine.Debug.LogException(ex);
                     }
-                    while (ErrorQueue.Count > 0)
-                    {
-                        string s = ErrorQueue.Dequeue();
-                        if (string.IsNullOrEmpty(s))
-                        {
-                            UnityEngine.Debug.LogError(s);
-                        }
-                    }
-                    while (WarnQueue.Count > 0)
-                    {
-                        string s = WarnQueue.Dequeue();
-                        if (string.IsNullOrEmpty(s))
-                        {
-                            UnityEngine.Debug.LogWarning(s);
-                        }
-                    }
-                    while (LogQueue.Count > 0)
-                    {
-                        string s = LogQueue.Dequeue();
-                        if (string.IsNullOrEmpty(s))
-                        {
-                            UnityEngine.Debug.Log(s);
-                        }
-                    }
-                    UnityEngine.Debug.LogWarning("kOS: Log Flush End");
+                    UnityEngine.Debug.Log(string.Format("kOS: Log Flushed, {0} messages in queue", TotalQueueLength()));
                 }
             }
         }
@@ -328,6 +340,5 @@ namespace kOS
             }
             return returnVal;
         }
-
     }
 }

@@ -10,5 +10,6 @@ namespace kOS.Safe
         void LogWarning(string s);
         void LogException(Exception exception);
         void LogError(string s);
+        void Flush();
     }
 }
