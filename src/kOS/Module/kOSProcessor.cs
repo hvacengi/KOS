@@ -47,6 +47,20 @@ namespace kOS.Module
 
         //640K ought to be enough for anybody -sic
         private const int PROCESSOR_HARD_CAP = 655360;
+        
+        // This represents the maximum number of instructions this processor's cpu can execute per fixed update.
+        // The value can be modified in the editor based on the limits set below.
+        [KSPField(isPersistant = true, guiActive = false)]
+        [UI_FloatRange(maxValue = 2000, minValue = 50, scene = UI_Scene.Editor, stepIncrement = 10f)]
+        public float MaxIPU = 200;
+
+        // This is the upper limit for MaxIPU.
+        [KSPField(isPersistant = false, guiActive = false)]
+        public int LimitIPUMax = 2000;
+
+        // This is the lower limit for MaxIPU.
+        [KSPField(isPersistant = false, guiActive = false)]
+        public int LimitIPUMin = 50;
 
         [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "Boot File"), UI_ChooseOption(scene = UI_Scene.Editor)]
         public string bootFile = "boot.ks";
@@ -264,6 +278,16 @@ namespace kOS.Module
             sizeOptions[1] = (baseDiskSpace * 2).ToString();
             sizeOptions[2] = (baseDiskSpace * 4).ToString();
             options.options = sizeOptions;
+
+            updateIpuUi();
+        }
+
+        private void updateIpuUi()
+        {
+            var field = Fields["MaxIPU"];
+            var uiFloat = (UI_FloatRange)field.uiControlEditor;
+            uiFloat.maxValue = LimitIPUMax;
+            uiFloat.minValue = LimitIPUMin;
         }
 
         public void InitObjects()
