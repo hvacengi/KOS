@@ -34,6 +34,25 @@ Though not represented in these documents, numerous changes to the
 part models and artwork are included as part of this update, including
 the new KAL9000 high-end computer part.
 
+kOSLightModule
+::::::::::::::
+
+While developing the KAL9000 lens light effect we discovered the kOS stock animations
+didn't do what we required.
+We set out a list of requirements:
+
+* On/off animation. Stock animations work in a forward/reverse mode. We needed to run our animations continuously and shut them off as desired.
+* Color coordination. Colors are coordinated between light sources and emissive textures.  That means your light source glows the same color as your light.
+* Realistic power consumption. The brighter the light, the more it costs.
+
+These features are all contained in the kOSLightModule and examples of their use
+are contained in the models and config files included.
+The kOS "Cherry Light" was developed to test all the features of the new light module
+and uses all it's features simultaneously.
+It was such a neat little item we thought we should package it as an example for
+modders of what the kOSLightModule can do. Full source files for the models can be found
+at our KSP-KOS Github site.
+
 Varying Power Consumption
 :::::::::::::::::::::::::
 
@@ -97,7 +116,7 @@ Better support for :ref:`DMagic's Orbital Science mod <orbitalscience>`
 Range
 :::::
 
-New :ref:`Range <range>` type for getting arbitrary iterable collections 
+New :ref:`Range <range>` type for getting arbitrary iterable collections
 of ranges of integers.
 
 Char and Unchar
@@ -127,7 +146,7 @@ Hours per day
 :::::::::::::
 
 :ref:`KUniverse <kuniverse>` now has a suffix to let you read the
-user setting for whether the clock is using a 24 hour day or a 
+user setting for whether the clock is using a 24 hour day or a
 Kerbin 6 hour day.
 
 Archive
@@ -142,7 +161,7 @@ Changes in 0.18.2
 Queue and Stack
 :::::::::::::::
 
-:ref:`Queues <queue>` and :ref:`Stacks <stack>` are now a feature 
+:ref:`Queues <queue>` and :ref:`Stacks <stack>` are now a feature
 you can use along with lists.
 
 Run Once
@@ -199,7 +218,7 @@ New :ref:`String <string>` structure now allows string manipulations.
 Science Experiment Control
 ::::::::::::::::::::::::::
 
-New :ref:`ScienceExperimentModule <scienceexperimentmodule>` allows you to fire off science experiments bypassing the user 
+New :ref:`ScienceExperimentModule <scienceexperimentmodule>` allows you to fire off science experiments bypassing the user
 interface dialog.
 
 Crew Member API
@@ -230,7 +249,7 @@ running the script.  This has been corrected.
 New quickstart tutorial
 :::::::::::::::::::::::
 
-`http://ksp-kos.github.io/KOS_DOC/tutorials/quickstart.html <http://ksp-kos.github.io/KOS_DOC/tutorials/quickstart.html>`_ 
+`http://ksp-kos.github.io/KOS_DOC/tutorials/quickstart.html <http://ksp-kos.github.io/KOS_DOC/tutorials/quickstart.html>`_
 
 A few more constants
 ::::::::::::::::::::
@@ -274,7 +293,7 @@ section.
 Short-Circuit Booleans
 ::::::::::::::::::::::
 
-Previously, kerboscript's AND and OR operators were not 
+Previously, kerboscript's AND and OR operators were not
 short-circuiting.  :ref:`Now they are <short_circuit>`.
 
 New Infernal Robotics interface
@@ -491,4 +510,3 @@ Vessels now have an :ISDEAD suffix you can use to detect if the
 vessel has gone away since the last time you got the handle to it.
 (for example, you LIST TARGETS IN FOO, then the ship foo[3] blows
 up, then foo[3]:ISDEAD should become true to clue you in to this fact.)
-
